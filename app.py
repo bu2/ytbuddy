@@ -137,6 +137,8 @@ def run_streamlit() -> None:
     """Launch the Streamlit UI."""
     import streamlit as st
 
+    st.set_page_config(page_title="YouTube Metadata Fetcher", layout="wide")
+
     st.title("YouTube Metadata Fetcher")
 
     channel_url = st.text_input("YouTube Channel URL")
