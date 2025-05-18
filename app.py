@@ -259,7 +259,10 @@ def run_streamlit() -> None:
         )
         with open("metadata.json", "w", encoding="utf-8") as fp:
             json.dump(metadata, fp, indent=2, default=str)
+        
         st.session_state["metadata"] = metadata
+        st.session_state["mapping"] = dict([(x["webpage_url"], x) for x in metadata])
+
         st.success("Done fetching metadata")
         st.caption("Select up to 10 videos.")
         selected = st.session_state["selected_videos"]
@@ -288,12 +291,19 @@ def run_streamlit() -> None:
             with open("transcripts.json", "w", encoding="utf-8") as fp:
                 json.dump(transcripts, fp, indent=2, ensure_ascii=False)
             st.success("Done fetching transcripts")
+
+            result = ''
             for url, text in transcripts.items():
-                st.subheader(url)
-                if isinstance(text, str):
-                    st.code(text)
-                else:
-                    st.code(json.dumps(text, indent=2, ensure_ascii=False))
+                info = st.session_state.mapping[url]
+
+                result += f'''
+{info['upload_date']} - {info['title']} - {info['view_count']} views - {info['duration_string']}
+{info['description']}
+Transcript: {text}
+--
+'''
+
+            st.code(result, language=None, wrap_lines=True)
 
 
 if __name__ == "__main__":
