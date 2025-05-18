@@ -16,8 +16,9 @@ pip install -r requirements.txt
 ```
 
 This installs [`yt-dlp`](https://github.com/yt-dlp/yt-dlp),
-[`ray`](https://github.com/ray-project/ray), and the `pytest` and `flake8` tools
-used for development tasks.
+[`ray`](https://github.com/ray-project/ray),
+[`youtube-transcript-api`](https://github.com/jdepoix/youtube-transcript-api), and
+the `pytest` and `flake8` tools used for development tasks.
 
 ## Usage
 
@@ -41,3 +42,8 @@ The ``videos`` command prints each video URL on a separate line, while the
 ``metadata`` command prints a JSON array containing the metadata objects for all
 videos. When running ``metadata``, the JSON output is also saved to a file named
 ``metadata.json`` in the current directory.
+
+After selecting videos in the Streamlit interface you can click "Fetch
+Transcripts" to download subtitles for up to ten videos at a time.  All
+transcripts are stored in ``transcripts.json`` and kept in session state for the
+current browser session.
