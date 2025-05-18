@@ -155,10 +155,9 @@ def run_streamlit() -> None:
             progress_bar.progress(i / len(video_urls))
             status.write(f"Fetched {i}/{len(video_urls)}: {info.get('title')}")
 
-        st.success("Done fetching metadata")
-        st.json(metadata)
         with open("metadata.json", "w", encoding="utf-8") as fp:
             json.dump(metadata, fp, indent=2)
+        st.success("Done fetching metadata")
 
 
 if __name__ == "__main__":
