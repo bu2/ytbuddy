@@ -16,18 +16,29 @@ from typing import List
 from yt_dlp import YoutubeDL
 
 
+
 def _normalize_channel_url(url: str) -> str:
-    """Strip trailing segments like ``/videos`` and return channel root URL."""
+    """Return a canonical *Videos*‑tab URL for the channel.
+
+    If the caller already supplies a URL that ends with ``/videos`` we keep it
+    as‑is. Otherwise we append ``/videos`` so that yt‑dlp is pointed directly
+    at the list of uploads.
+    """
+    # Keep the exact /videos URL if it is already provided
+    if url.rstrip("/").endswith("/videos"):
+        return url.rstrip("/")
+
+    # Otherwise capture the channel root and add the /videos path
     m = re.match(r"(https?://www\.youtube\.com/[^/]+)", url)
     if not m:
         raise ValueError(f"Unrecognized YouTube URL: {url}")
-    return m.group(1)
+    return m.group(1) + "/videos"
 
 
 def fetch_video_urls(channel_url: str) -> List[str]:
     """Return list of video URLs for the channel using ``yt-dlp``."""
     ydl_opts = {
-        "extract_flat": True,
+        "extract_flat": "in_playlist",
         "skip_download": True,
         "quiet": True,
     }
