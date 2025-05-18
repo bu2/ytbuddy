@@ -12,7 +12,7 @@ list of video URLs from a YouTube channel.
 pip install -r requirements.txt
 ```
 
-This installs [`pytube`](https://pytube.io/) along with `pytest` and `flake8` for
+This installs [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) along with `pytest` and `flake8` for
 development tasks.
 
 ## Usage
