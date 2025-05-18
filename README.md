@@ -2,8 +2,9 @@
 
 This repository contains a helper script for working with YouTube channels.
 
-- `fetch.py` can print the list of video URLs or output the full metadata for
-  every video in a channel as JSON.
+- `app.py` can print the list of video URLs or output the full metadata for
+  every video in a channel as JSON.  Running it with Streamlit provides a simple
+  web UI for fetching metadata interactively.
 
 ## Requirements
 
@@ -25,10 +26,13 @@ segment or just the channel root URL.
 
 ```bash
 # Print all video URLs
-python fetch.py videos https://www.youtube.com/@sequoiacapital/videos
+python app.py videos https://www.youtube.com/@sequoiacapital/videos
 
 # Print metadata for all videos (parallelized with Ray)
-python fetch.py metadata https://www.youtube.com/@sequoiacapital
+python app.py metadata https://www.youtube.com/@sequoiacapital
+
+# Launch the web UI
+streamlit run app.py
 ```
 
 Fetching metadata runs multiple workers using Ray so downloads happen concurrently.

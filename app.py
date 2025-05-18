@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Fetch videos or metadata from a YouTube channel.
+"""Interactively fetch YouTube video URLs and metadata.
 
-This script combines the functionality of ``fetch_videos.py`` and
-``fetch_metadata.py``.
+This module exposes the same helpers as ``fetch.py`` but also provides a
+Streamlit UI.  The original command line interface is still available and can
+be invoked with::
 
-Usage::
+    python app.py videos CHANNEL_URL
+    python app.py metadata CHANNEL_URL
 
-    python fetch.py videos CHANNEL_URL
-    python fetch.py metadata CHANNEL_URL
+Running ``streamlit run app.py`` will launch the web interface.
 """
 
 from __future__ import annotations
@@ -87,13 +88,30 @@ def fetch_all_metadata(channel_url: str) -> List[Dict[str, Any]]:
     return metadata
 
 
+def fetch_metadata_stream(channel_url: str):
+    """Yield metadata for all channel videos as each item becomes available."""
+    channel_root = _normalize_channel_url(channel_url)
+    video_urls = fetch_video_urls(channel_root)
+
+    ray.init(ignore_reinit_error=True)
+    try:
+        refs = [_fetch_video_metadata_remote.remote(url) for url in video_urls]
+        remaining = refs
+        while remaining:
+            done, remaining = ray.wait(remaining)
+            yield ray.get(done[0])
+    finally:
+        ray.shutdown()
+
+
 # --- CLI ------------------------------------------------------------------
 
 def _usage() -> str:
     return (
         "Usage:\n"
-        "    python fetch.py videos CHANNEL_URL\n"
-        "    python fetch.py metadata CHANNEL_URL"
+        "    python app.py videos CHANNEL_URL\n"
+        "    python app.py metadata CHANNEL_URL\n"
+        "    streamlit run app.py"
     )
 
 
@@ -115,5 +133,36 @@ def main(args: List[str]) -> None:
             json.dump(all_metadata, fp, indent=2)
 
 
+def run_streamlit() -> None:
+    """Launch the Streamlit UI."""
+    import streamlit as st
+
+    st.title("YouTube Metadata Fetcher")
+
+    channel_url = st.text_input("YouTube Channel URL")
+
+    if st.button("Fetch Metadata") and channel_url:
+        st.write("Fetching video list...")
+        video_urls = fetch_video_urls(channel_url)
+        st.write(f"Found {len(video_urls)} videos.")
+
+        progress_bar = st.progress(0)
+        status = st.empty()
+        metadata: List[Dict[str, Any]] = []
+
+        for i, info in enumerate(fetch_metadata_stream(channel_url), start=1):
+            metadata.append(info)
+            progress_bar.progress(i / len(video_urls))
+            status.write(f"Fetched {i}/{len(video_urls)}: {info.get('title')}")
+
+        st.success("Done fetching metadata")
+        st.json(metadata)
+        with open("metadata.json", "w", encoding="utf-8") as fp:
+            json.dump(metadata, fp, indent=2)
+
+
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    if len(sys.argv) > 1:
+        main(sys.argv[1:])
+    else:
+        run_streamlit()
