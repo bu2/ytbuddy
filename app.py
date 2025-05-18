@@ -168,17 +168,30 @@ def run_streamlit() -> None:
 
     st.title("YouTube Metadata Fetcher")
 
+    if "selected_videos" not in st.session_state:
+        st.session_state["selected_videos"] = set()
+    if "metadata" not in st.session_state:
+        st.session_state["metadata"] = []
+    if "video_urls" not in st.session_state:
+        st.session_state["video_urls"] = []
+
     channel_url = st.text_input("YouTube Channel URL")
+    results_container = st.container()
 
     if st.button("Fetch Metadata") and channel_url:
         st.write("Fetching video list...")
         video_urls = fetch_video_urls(channel_url)
+        st.session_state["video_urls"] = video_urls
+        st.session_state["metadata"] = []
+        st.session_state["selected_videos"] = set()
         st.write(f"Found {len(video_urls)} videos.")
+        st.caption("Select up to 10 videos.")
 
         progress_bar = st.progress(0)
         status = st.empty()
-        results_container = st.container()
-        metadata: List[Dict[str, Any]] = []
+        selection_info = st.empty()
+        metadata: List[Dict[str, Any]] = st.session_state["metadata"]
+        selected = st.session_state["selected_videos"]
 
         num_cols = 5
         columns = []
@@ -187,6 +200,7 @@ def run_streamlit() -> None:
             metadata.append(info)
             progress_bar.progress(i / len(video_urls))
             status.write(f"Fetched {i}/{len(video_urls)}: {info.get('title')}")
+            selection_info.write(f"Selected {len(selected)}/10 videos")
 
             if (i - 1) % num_cols == 0:
                 columns = results_container.columns(num_cols)
@@ -205,6 +219,15 @@ def run_streamlit() -> None:
                 'view_count': info.get('view_count'),
                 'duration_string': info.get('duration_string'),
             }))
+            key = f"video_{i}"
+            is_checked = st.session_state.get(key, False)
+            disabled = len(selected) >= 10 and not is_checked
+            checked = col.checkbox("Select", key=key, disabled=disabled)
+            if checked:
+                selected.add(info.get("webpage_url"))
+            else:
+                selected.discard(info.get("webpage_url"))
+            st.session_state["selected_videos"] = selected
 
         metadata.sort(
             key=lambda m: m.get("upload_date") or date.min,
@@ -212,7 +235,45 @@ def run_streamlit() -> None:
         )
         with open("metadata.json", "w", encoding="utf-8") as fp:
             json.dump(metadata, fp, indent=2, default=str)
+        st.session_state["metadata"] = metadata
         st.success("Done fetching metadata")
+        st.write(f"Selected {len(selected)}/10 videos")
+    elif st.session_state["metadata"]:
+        st.caption("Select up to 10 videos.")
+        metadata = st.session_state["metadata"]
+        selected = st.session_state["selected_videos"]
+        num_cols = 5
+        columns = []
+        for i, info in enumerate(metadata, start=1):
+            if (i - 1) % num_cols == 0:
+                columns = results_container.columns(num_cols)
+            col = columns[(i - 1) % num_cols]
+            thumb_url = info.get("thumbnail") or next(
+                (t["url"] for t in info.get("thumbnails", []) if "url" in t),
+                None,
+            )
+            if thumb_url:
+                col.image(thumb_url, use_container_width=True)
+            col.markdown(
+                THUMBNAIL_TEMPLATE.format(
+                    **{
+                        "title": info.get("title", "Untitled"),
+                        "upload_date": info.get("upload_date"),
+                        "view_count": info.get("view_count"),
+                        "duration_string": info.get("duration_string"),
+                    }
+                )
+            )
+            key = f"video_{i}"
+            is_checked = st.session_state.get(key, False)
+            disabled = len(selected) >= 10 and not is_checked
+            checked = col.checkbox("Select", key=key, disabled=disabled)
+            if checked:
+                selected.add(info.get("webpage_url"))
+            else:
+                selected.discard(info.get("webpage_url"))
+        st.session_state["selected_videos"] = selected
+        st.write(f"Selected {len(selected)}/10 videos")
 
 
 if __name__ == "__main__":
