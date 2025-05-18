@@ -3,3 +3,4 @@ ray
 pytest
 flake8
 streamlit
+youtube-transcript-api

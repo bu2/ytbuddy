@@ -19,6 +19,8 @@ import sys
 from datetime import datetime, date
 from typing import Any, Dict, List
 
+from youtube_transcript_api import YouTubeTranscriptApi
+
 import ray
 
 from yt_dlp import YoutubeDL
@@ -77,6 +79,17 @@ def fetch_video_metadata(video_url: str) -> Dict[str, Any]:
         info = ydl.extract_info(video_url, download=False)
     info["upload_date"] = _parse_upload_date(info.get("upload_date"))
     return info
+
+
+def fetch_transcript(video_url: str) -> List[Dict[str, str]]:
+    """Return the transcript for a YouTube video."""
+    m = re.search(r"v=([^&]+)", video_url)
+    if not m:
+        m = re.search(r"youtu\.be/([^?&]+)", video_url)
+    if not m:
+        raise ValueError(f"Could not parse video ID from URL: {video_url}")
+    video_id = m.group(1)
+    return YouTubeTranscriptApi.get_transcript(video_id)
 
 
 @ray.remote
@@ -214,6 +227,8 @@ def run_streamlit() -> None:
         st.session_state["metadata"] = []
     if "video_urls" not in st.session_state:
         st.session_state["video_urls"] = []
+    if "transcripts" not in st.session_state:
+        st.session_state["transcripts"] = {}
 
     channel_url = st.text_input("YouTube Channel URL")
     results_container = st.container()
@@ -256,6 +271,23 @@ def run_streamlit() -> None:
         selected = st.session_state["selected_videos"]
         _render_metadata(st, metadata, results_container, selected)
         st.write(f"Selected {len(selected)}/10 videos")
+
+    if st.session_state.get("selected_videos"):
+        if st.button("Fetch Transcripts"):
+            selected_urls = list(st.session_state["selected_videos"])
+            progress_bar = st.progress(0)
+            transcripts: Dict[str, List[Dict[str, str]]] = {}
+            for i, url in enumerate(selected_urls, start=1):
+                try:
+                    transcripts[url] = fetch_transcript(url)
+                except Exception as exc:  # noqa: BLE001
+                    transcripts[url] = [{"error": str(exc)}]
+                progress_bar.progress(i / len(selected_urls))
+            progress_bar.empty()
+            st.session_state["transcripts"] = transcripts
+            with open("transcripts.json", "w", encoding="utf-8") as fp:
+                json.dump(transcripts, fp, indent=2, ensure_ascii=False)
+            st.success("Done fetching transcripts")
 
 
 if __name__ == "__main__":
