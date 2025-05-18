@@ -1,10 +1,9 @@
 # ytbuddy
 
-This repository contains helper scripts for working with YouTube channels.
+This repository contains a helper script for working with YouTube channels.
 
-- `fetch_videos.py` retrieves the list of video URLs from a channel.
-- `fetch_metadata.py` outputs the full metadata for every video in a channel as
-  JSON.
+- `fetch.py` can print the list of video URLs or output the full metadata for
+  every video in a channel as JSON.
 
 ## Requirements
 
@@ -20,14 +19,17 @@ development tasks.
 
 ## Usage
 
-Run the scripts with a channel URL. They accept URLs that include the
-`/videos` segment or just the channel root URL.
+Run the script with a channel URL. It accepts URLs that include the `/videos`
+segment or just the channel root URL.
 
 ```bash
-python fetch_videos.py https://www.youtube.com/@sequoiacapital/videos
-python fetch_metadata.py https://www.youtube.com/@sequoiacapital
+# Print all video URLs
+python fetch.py videos https://www.youtube.com/@sequoiacapital/videos
+
+# Print metadata for all videos
+python fetch.py metadata https://www.youtube.com/@sequoiacapital
 ```
 
-`fetch_videos.py` prints each video URL on a separate line, while
-`fetch_metadata.py` prints a JSON array containing the metadata objects for all
+The ``videos`` command prints each video URL on a separate line, while the
+``metadata`` command prints a JSON array containing the metadata objects for all
 videos.
