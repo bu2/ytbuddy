@@ -168,17 +168,23 @@ def run_streamlit() -> None:
 
     st.title("YouTube Metadata Fetcher")
 
+    if "selected_videos" not in st.session_state:
+        st.session_state["selected_videos"] = set()
+
     channel_url = st.text_input("YouTube Channel URL")
 
     if st.button("Fetch Metadata") and channel_url:
         st.write("Fetching video list...")
         video_urls = fetch_video_urls(channel_url)
         st.write(f"Found {len(video_urls)} videos.")
+        st.caption("Select up to 10 videos.")
 
         progress_bar = st.progress(0)
         status = st.empty()
         results_container = st.container()
+        selection_info = st.empty()
         metadata: List[Dict[str, Any]] = []
+        selected = st.session_state["selected_videos"]
 
         num_cols = 5
         columns = []
@@ -187,6 +193,7 @@ def run_streamlit() -> None:
             metadata.append(info)
             progress_bar.progress(i / len(video_urls))
             status.write(f"Fetched {i}/{len(video_urls)}: {info.get('title')}")
+            selection_info.write(f"Selected {len(selected)}/10 videos")
 
             if (i - 1) % num_cols == 0:
                 columns = results_container.columns(num_cols)
@@ -205,6 +212,15 @@ def run_streamlit() -> None:
                 'view_count': info.get('view_count'),
                 'duration_string': info.get('duration_string'),
             }))
+            key = f"video_{i}"
+            is_checked = st.session_state.get(key, False)
+            disabled = len(selected) >= 10 and not is_checked
+            checked = col.checkbox("Select", key=key, disabled=disabled)
+            if checked:
+                selected.add(info.get("webpage_url"))
+            else:
+                selected.discard(info.get("webpage_url"))
+            st.session_state["selected_videos"] = selected
 
         metadata.sort(
             key=lambda m: m.get("upload_date") or date.min,
@@ -213,6 +229,7 @@ def run_streamlit() -> None:
         with open("metadata.json", "w", encoding="utf-8") as fp:
             json.dump(metadata, fp, indent=2, default=str)
         st.success("Done fetching metadata")
+        st.write(f"Selected {len(selected)}/10 videos")
 
 
 if __name__ == "__main__":
