@@ -17,6 +17,8 @@ import re
 import sys
 from typing import Any, Dict, List
 
+import ray
+
 from yt_dlp import YoutubeDL
 
 
@@ -64,12 +66,24 @@ def fetch_video_metadata(video_url: str) -> Dict[str, Any]:
     return info
 
 
+@ray.remote
+def _fetch_video_metadata_remote(video_url: str) -> Dict[str, Any]:
+    """Ray remote wrapper for :func:`fetch_video_metadata`."""
+    return fetch_video_metadata(video_url)
+
+
 def fetch_all_metadata(channel_url: str) -> List[Dict[str, Any]]:
     """Return metadata for all videos on the channel."""
     channel_root = _normalize_channel_url(channel_url)
-    metadata = []
-    for url in fetch_video_urls(channel_root):
-        metadata.append(fetch_video_metadata(url))
+    video_urls = fetch_video_urls(channel_root)
+
+    ray.init(ignore_reinit_error=True)
+    try:
+        refs = [_fetch_video_metadata_remote.remote(url) for url in video_urls]
+        metadata = ray.get(refs)
+    finally:
+        ray.shutdown()
+
     return metadata
 
 
