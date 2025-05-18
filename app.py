@@ -198,7 +198,7 @@ def run_streamlit() -> None:
                 None,
             )
             if thumb_url:
-                col.image(thumb_url, use_column_width=True)
+                col.image(thumb_url, use_container_width=True)
             col.markdown(THUMBNAIL_TEMPLATE.format(**{
                 'title': info.get('title', 'Untitled'),
                 'upload_date': info.get('upload_date'),
