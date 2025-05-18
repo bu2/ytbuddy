@@ -133,6 +133,17 @@ def main(args: List[str]) -> None:
             json.dump(all_metadata, fp, indent=2)
 
 
+THUMBNAIL_TEMPLATE = '''
+**{title}**
+
+Published: {upload_date}
+
+Views: {view_count}
+
+Duration: {duration_string}
+'''
+
+
 def run_streamlit() -> None:
     """Launch the Streamlit UI."""
     import streamlit as st
@@ -153,7 +164,7 @@ def run_streamlit() -> None:
         results_container = st.container()
         metadata: List[Dict[str, Any]] = []
 
-        num_cols = 3
+        num_cols = 5
         columns = []
 
         for i, info in enumerate(fetch_metadata_stream(channel_url), start=1):
@@ -172,10 +183,12 @@ def run_streamlit() -> None:
             )
             if thumb_url:
                 col.image(thumb_url, use_column_width=True)
-            col.markdown(f"**{info.get('title', 'Untitled')}**")
-            col.write(f"Published: {info.get('upload_date')}")
-            col.write(f"Views: {info.get('view_count')}")
-            col.write(f"Duration: {info.get('duration_string')}")
+            col.markdown(THUMBNAIL_TEMPLATE.format(**{
+                'title': info.get('title', 'Untitled'),
+                'upload_date': info.get('upload_date'),
+                'view_count': info.get('view_count'),
+                'duration_string': info.get('duration_string'),
+            }))
 
         with open("metadata.json", "w", encoding="utf-8") as fp:
             json.dump(metadata, fp, indent=2)
