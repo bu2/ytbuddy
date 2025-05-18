@@ -160,6 +160,46 @@ Duration: {duration_string}
 '''
 
 
+def _render_metadata(
+    st,
+    metadata: List[Dict[str, Any]],
+    container,
+    selected: set,
+) -> None:
+    """Display video metadata thumbnails with selection checkboxes."""
+    num_cols = 5
+    columns = []
+    for i, info in enumerate(metadata, start=1):
+        if (i - 1) % num_cols == 0:
+            columns = container.columns(num_cols)
+        col = columns[(i - 1) % num_cols]
+        thumb_url = info.get("thumbnail") or next(
+            (t["url"] for t in info.get("thumbnails", []) if "url" in t),
+            None,
+        )
+        if thumb_url:
+            col.image(thumb_url, use_container_width=True)
+        col.markdown(
+            THUMBNAIL_TEMPLATE.format(
+                **{
+                    "title": info.get("title", "Untitled"),
+                    "upload_date": info.get("upload_date"),
+                    "view_count": info.get("view_count"),
+                    "duration_string": info.get("duration_string"),
+                }
+            )
+        )
+        key = f"video_{i}"
+        is_checked = st.session_state.get(key, False)
+        disabled = len(selected) >= 10 and not is_checked
+        checked = col.checkbox("Select", key=key, disabled=disabled)
+        if checked:
+            selected.add(info.get("webpage_url"))
+        else:
+            selected.discard(info.get("webpage_url"))
+    st.session_state["selected_videos"] = selected
+
+
 def run_streamlit() -> None:
     """Launch the Streamlit UI."""
     import streamlit as st
@@ -185,49 +225,18 @@ def run_streamlit() -> None:
         st.session_state["metadata"] = []
         st.session_state["selected_videos"] = set()
         st.write(f"Found {len(video_urls)} videos.")
-        st.caption("Select up to 10 videos.")
 
         progress_bar = st.progress(0)
         status = st.empty()
-        selection_info = st.empty()
-        metadata: List[Dict[str, Any]] = st.session_state["metadata"]
-        selected = st.session_state["selected_videos"]
-
-        num_cols = 5
-        columns = []
+        metadata: List[Dict[str, Any]] = []
 
         for i, info in enumerate(fetch_metadata_stream(channel_url), start=1):
             metadata.append(info)
             progress_bar.progress(i / len(video_urls))
             status.write(f"Fetched {i}/{len(video_urls)}: {info.get('title')}")
-            selection_info.write(f"Selected {len(selected)}/10 videos")
 
-            if (i - 1) % num_cols == 0:
-                columns = results_container.columns(num_cols)
-
-            col = columns[(i - 1) % num_cols]
-            # Prefer the full-size `thumbnail` key; fall back to the highest-res entry in `thumbnails`
-            thumb_url = info.get("thumbnail") or next(
-                (t["url"] for t in info.get("thumbnails", []) if "url" in t),
-                None,
-            )
-            if thumb_url:
-                col.image(thumb_url, use_container_width=True)
-            col.markdown(THUMBNAIL_TEMPLATE.format(**{
-                'title': info.get('title', 'Untitled'),
-                'upload_date': info.get('upload_date'),
-                'view_count': info.get('view_count'),
-                'duration_string': info.get('duration_string'),
-            }))
-            key = f"video_{i}"
-            is_checked = st.session_state.get(key, False)
-            disabled = len(selected) >= 10 and not is_checked
-            checked = col.checkbox("Select", key=key, disabled=disabled)
-            if checked:
-                selected.add(info.get("webpage_url"))
-            else:
-                selected.discard(info.get("webpage_url"))
-            st.session_state["selected_videos"] = selected
+        progress_bar.empty()
+        status.empty()
 
         metadata.sort(
             key=lambda m: m.get("upload_date") or date.min,
@@ -237,42 +246,15 @@ def run_streamlit() -> None:
             json.dump(metadata, fp, indent=2, default=str)
         st.session_state["metadata"] = metadata
         st.success("Done fetching metadata")
+        st.caption("Select up to 10 videos.")
+        selected = st.session_state["selected_videos"]
+        _render_metadata(st, metadata, results_container, selected)
         st.write(f"Selected {len(selected)}/10 videos")
     elif st.session_state["metadata"]:
         st.caption("Select up to 10 videos.")
         metadata = st.session_state["metadata"]
         selected = st.session_state["selected_videos"]
-        num_cols = 5
-        columns = []
-        for i, info in enumerate(metadata, start=1):
-            if (i - 1) % num_cols == 0:
-                columns = results_container.columns(num_cols)
-            col = columns[(i - 1) % num_cols]
-            thumb_url = info.get("thumbnail") or next(
-                (t["url"] for t in info.get("thumbnails", []) if "url" in t),
-                None,
-            )
-            if thumb_url:
-                col.image(thumb_url, use_container_width=True)
-            col.markdown(
-                THUMBNAIL_TEMPLATE.format(
-                    **{
-                        "title": info.get("title", "Untitled"),
-                        "upload_date": info.get("upload_date"),
-                        "view_count": info.get("view_count"),
-                        "duration_string": info.get("duration_string"),
-                    }
-                )
-            )
-            key = f"video_{i}"
-            is_checked = st.session_state.get(key, False)
-            disabled = len(selected) >= 10 and not is_checked
-            checked = col.checkbox("Select", key=key, disabled=disabled)
-            if checked:
-                selected.add(info.get("webpage_url"))
-            else:
-                selected.discard(info.get("webpage_url"))
-        st.session_state["selected_videos"] = selected
+        _render_metadata(st, metadata, results_container, selected)
         st.write(f"Selected {len(selected)}/10 videos")
 
 
