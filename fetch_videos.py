@@ -4,7 +4,7 @@
 Usage:
     python fetch_videos.py https://www.youtube.com/@sequoiacapital/videos
 
-Requires the ``pytube`` package. Install via ``pip install pytube``.
+Requires the ``yt-dlp`` package. Install via ``pip install yt-dlp``.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import re
 import sys
 from typing import List
 
-from pytube import Channel
+from yt_dlp import YoutubeDL
 
 
 def _normalize_channel_url(url: str) -> str:
@@ -25,9 +25,23 @@ def _normalize_channel_url(url: str) -> str:
 
 
 def fetch_video_urls(channel_url: str) -> List[str]:
-    """Return list of video URLs for the channel."""
-    channel = Channel(channel_url)
-    return list(channel.video_urls)
+    """Return list of video URLs for the channel using ``yt-dlp``."""
+    ydl_opts = {
+        "extract_flat": True,
+        "skip_download": True,
+        "quiet": True,
+    }
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(channel_url, download=False)
+    urls: List[str] = []
+    for entry in info.get("entries", []):
+        url = entry.get("url")
+        if not url:
+            continue
+        if not url.startswith("http"):
+            url = f"https://www.youtube.com/watch?v={url}"
+        urls.append(url)
+    return urls
 
 
 def main(args: List[str]) -> None:
