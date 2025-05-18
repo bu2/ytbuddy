@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from datetime import datetime, date
 from typing import Any, Dict, List
 
 import ray
@@ -56,6 +57,16 @@ def fetch_video_urls(channel_url: str) -> List[str]:
     return urls
 
 
+def _parse_upload_date(date_str: str | None) -> date | None:
+    """Return a ``datetime.date`` parsed from ``YYYYMMDD`` format."""
+    if not date_str:
+        return None
+    try:
+        return datetime.strptime(date_str, "%Y%m%d").date()
+    except (ValueError, TypeError):
+        return None
+
+
 def fetch_video_metadata(video_url: str) -> Dict[str, Any]:
     """Return metadata for a single YouTube video."""
     ydl_opts = {
@@ -64,6 +75,7 @@ def fetch_video_metadata(video_url: str) -> Dict[str, Any]:
     }
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(video_url, download=False)
+    info["upload_date"] = _parse_upload_date(info.get("upload_date"))
     return info
 
 
@@ -85,6 +97,10 @@ def fetch_all_metadata(channel_url: str) -> List[Dict[str, Any]]:
     finally:
         ray.shutdown()
 
+    metadata.sort(
+        key=lambda m: m.get("upload_date") or date.min,
+        reverse=True,
+    )
     return metadata
 
 
@@ -128,9 +144,9 @@ def main(args: List[str]) -> None:
             print(video_url)
     else:  # metadata
         all_metadata = fetch_all_metadata(channel_root)
-        print(json.dumps(all_metadata, indent=2))
+        print(json.dumps(all_metadata, indent=2, default=str))
         with open("metadata.json", "w", encoding="utf-8") as fp:
-            json.dump(all_metadata, fp, indent=2)
+            json.dump(all_metadata, fp, indent=2, default=str)
 
 
 THUMBNAIL_TEMPLATE = '''
@@ -182,7 +198,7 @@ def run_streamlit() -> None:
                 None,
             )
             if thumb_url:
-                col.image(thumb_url, use_column_width=True)
+                col.image(thumb_url, use_container_width=True)
             col.markdown(THUMBNAIL_TEMPLATE.format(**{
                 'title': info.get('title', 'Untitled'),
                 'upload_date': info.get('upload_date'),
@@ -190,8 +206,12 @@ def run_streamlit() -> None:
                 'duration_string': info.get('duration_string'),
             }))
 
+        metadata.sort(
+            key=lambda m: m.get("upload_date") or date.min,
+            reverse=True,
+        )
         with open("metadata.json", "w", encoding="utf-8") as fp:
-            json.dump(metadata, fp, indent=2)
+            json.dump(metadata, fp, indent=2, default=str)
         st.success("Done fetching metadata")
 
 
