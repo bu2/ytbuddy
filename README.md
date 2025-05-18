@@ -14,8 +14,9 @@ This repository contains a helper script for working with YouTube channels.
 pip install -r requirements.txt
 ```
 
-This installs [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) along with `pytest` and `flake8` for
-development tasks.
+This installs [`yt-dlp`](https://github.com/yt-dlp/yt-dlp),
+[`ray`](https://github.com/ray-project/ray), and the `pytest` and `flake8` tools
+used for development tasks.
 
 ## Usage
 
@@ -26,9 +27,11 @@ segment or just the channel root URL.
 # Print all video URLs
 python fetch.py videos https://www.youtube.com/@sequoiacapital/videos
 
-# Print metadata for all videos
+# Print metadata for all videos (parallelized with Ray)
 python fetch.py metadata https://www.youtube.com/@sequoiacapital
 ```
+
+Fetching metadata runs multiple workers using Ray so downloads happen concurrently.
 
 The ``videos`` command prints each video URL on a separate line, while the
 ``metadata`` command prints a JSON array containing the metadata objects for all
