@@ -133,6 +133,17 @@ def main(args: List[str]) -> None:
             json.dump(all_metadata, fp, indent=2)
 
 
+THUMBNAIL_TEMPLATE = '''
+**{title}**
+
+Published: {upload_date}
+
+Views: {view_count}
+
+Duration: {duration_string}
+'''
+
+
 def run_streamlit() -> None:
     """Launch the Streamlit UI."""
     import streamlit as st
@@ -153,24 +164,31 @@ def run_streamlit() -> None:
         results_container = st.container()
         metadata: List[Dict[str, Any]] = []
 
+        num_cols = 5
+        columns = []
+
         for i, info in enumerate(fetch_metadata_stream(channel_url), start=1):
             metadata.append(info)
             progress_bar.progress(i / len(video_urls))
             status.write(f"Fetched {i}/{len(video_urls)}: {info.get('title')}")
-            # Display thumbnail and basic metadata as each video arrives
-            with results_container:
-                col1, col2 = st.columns([1, 4])
-                # Prefer the full‑size `thumbnail` key; fall back to the highest‑res entry in `thumbnails`
-                thumb_url = info.get("thumbnail") or next(
-                    (t["url"] for t in info.get("thumbnails", []) if "url" in t),
-                    None,
-                )
-                if thumb_url:
-                    col1.image(thumb_url, use_column_width=True)
-                col2.markdown(f"**{info.get('title', 'Untitled')}**")
-                col2.write(f"Published: {info.get('upload_date')}")
-                col2.write(f"Views: {info.get('view_count')}")
-                col2.write(f"Duration: {info.get('duration_string')}")
+
+            if (i - 1) % num_cols == 0:
+                columns = results_container.columns(num_cols)
+
+            col = columns[(i - 1) % num_cols]
+            # Prefer the full-size `thumbnail` key; fall back to the highest-res entry in `thumbnails`
+            thumb_url = info.get("thumbnail") or next(
+                (t["url"] for t in info.get("thumbnails", []) if "url" in t),
+                None,
+            )
+            if thumb_url:
+                col.image(thumb_url, use_column_width=True)
+            col.markdown(THUMBNAIL_TEMPLATE.format(**{
+                'title': info.get('title', 'Untitled'),
+                'upload_date': info.get('upload_date'),
+                'view_count': info.get('view_count'),
+                'duration_string': info.get('duration_string'),
+            }))
 
         with open("metadata.json", "w", encoding="utf-8") as fp:
             json.dump(metadata, fp, indent=2)
