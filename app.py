@@ -89,7 +89,7 @@ def fetch_transcript(video_url: str) -> List[Dict[str, str]]:
     if not m:
         raise ValueError(f"Could not parse video ID from URL: {video_url}")
     video_id = m.group(1)
-    return YouTubeTranscriptApi.get_transcript(video_id)
+    return ' '.join([x['text'] for x in YouTubeTranscriptApi.get_transcript(video_id)])
 
 
 @ray.remote
