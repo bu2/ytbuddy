@@ -288,6 +288,12 @@ def run_streamlit() -> None:
             with open("transcripts.json", "w", encoding="utf-8") as fp:
                 json.dump(transcripts, fp, indent=2, ensure_ascii=False)
             st.success("Done fetching transcripts")
+            for url, text in transcripts.items():
+                st.subheader(url)
+                if isinstance(text, str):
+                    st.code(text)
+                else:
+                    st.code(json.dumps(text, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
