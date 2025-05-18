@@ -32,4 +32,5 @@ python fetch.py metadata https://www.youtube.com/@sequoiacapital
 
 The ``videos`` command prints each video URL on a separate line, while the
 ``metadata`` command prints a JSON array containing the metadata objects for all
-videos.
+videos. When running ``metadata``, the JSON output is also saved to a file named
+``metadata.json`` in the current directory.

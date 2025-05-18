@@ -97,6 +97,8 @@ def main(args: List[str]) -> None:
     else:  # metadata
         all_metadata = fetch_all_metadata(channel_root)
         print(json.dumps(all_metadata, indent=2))
+        with open("metadata.json", "w", encoding="utf-8") as fp:
+            json.dump(all_metadata, fp, indent=2)
 
 
 if __name__ == "__main__":
