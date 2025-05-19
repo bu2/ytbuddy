@@ -236,7 +236,7 @@ def run_streamlit() -> None:
     channel_url = st.text_input("YouTube Channel URL")
     results_container = st.container()
 
-    if st.button("Fetch Metadata") and channel_url:
+    if not st.session_state["metadata"] and st.button("Fetch Metadata") and channel_url:
         st.write("Fetching video list...")
         video_urls = fetch_video_urls(channel_url)
         st.session_state["video_urls"] = video_urls
@@ -271,6 +271,7 @@ def run_streamlit() -> None:
         selected = st.session_state["selected_videos"]
         _render_metadata(st, metadata, results_container, selected)
         st.write(f"Selected {len(selected)}/10 videos")
+
     elif st.session_state["metadata"]:
         st.caption("Select up to 10 videos.")
         metadata = st.session_state["metadata"]
