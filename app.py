@@ -13,10 +13,11 @@ Running ``streamlit run app.py`` will launch the web interface.
 
 from __future__ import annotations
 
+from datetime import datetime, date
 import json
 import re
 import sys
-from datetime import datetime, date
+import time
 from typing import Any, Dict, List
 
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -89,7 +90,9 @@ def fetch_transcript(video_url: str) -> List[Dict[str, str]]:
     if not m:
         raise ValueError(f"Could not parse video ID from URL: {video_url}")
     video_id = m.group(1)
-    return ' '.join([x['text'] for x in YouTubeTranscriptApi.get_transcript(video_id)])
+    rez = ' '.join([x['text'] for x in YouTubeTranscriptApi.get_transcript(video_id)])
+    time.sleep(1)
+    return rez
 
 
 @ray.remote
