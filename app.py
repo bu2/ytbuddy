@@ -219,7 +219,7 @@ def run_streamlit() -> None:
 
     st.set_page_config(page_title="YouTube Metadata Fetcher", layout="wide")
 
-    st.title("YouTube Metadata Fetcher")
+    st.title("YouTube Transcript Buddy")
 
     if "selected_videos" not in st.session_state:
         st.session_state["selected_videos"] = set()
@@ -298,6 +298,7 @@ def run_streamlit() -> None:
 
                 result += f'''
 {info['upload_date']} - {info['title']} - {info['view_count']} views - {info['duration_string']}
+{info['webpage_url']}
 {info['description']}
 Transcript: {text}
 --
